@@ -1,5 +1,6 @@
 package com.ravi.orderflow.product;
 
+import com.ravi.orderflow.exception.ProductAlreadyExistsException;
 import com.ravi.orderflow.exception.ProductNotFoundException;
 import com.ravi.orderflow.product.dto.ProductRequest;
 import com.ravi.orderflow.product.dto.ProductResponse;
@@ -15,14 +16,25 @@ public class ProductService {
 
     private final ProductRepository productRepository;
 
-    public ProductResponse createProduct(ProductRequest productRequest) {
+    public ProductResponse createProduct(ProductRequest request) {
+        if (productRepository.existsByNameIgnoreCaseAndPriceAndDescriptionIgnoreCase(
+                request.getName(),
+                request.getPrice(),
+                request.getDescription()
+        )) {
+            throw new ProductAlreadyExistsException(
+                    "Product already exists with same name, price, and description."
+            );
+        }
+
         Product product = Product.builder()
-                .name(productRequest.getName())
-                .description(productRequest.getDescription())
-                .price(productRequest.getPrice())
-                .quantity(Integer.valueOf(productRequest.getQuantity()))
+                .name(request.getName())
+                .description(request.getDescription())
+                .price(request.getPrice())
+                .quantity(request.getQuantity())
                 .active(true)
                 .build();
+
         Product savedProduct = productRepository.save(product);
 
         return mapToResponse(savedProduct);
@@ -42,14 +54,28 @@ public class ProductService {
         return mapToResponse(product);
     }
 
-    public ProductResponse updateProduct(UUID id, ProductRequest productRequest) {
+    public ProductResponse updateProduct(UUID id, ProductRequest request) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
-        product.setName(productRequest.getName());
-        product.setDescription(productRequest.getDescription());
-        product.setPrice(productRequest.getPrice());
-        product.setQuantity(Integer.valueOf(productRequest.getQuantity()));
+
+        if (productRepository.existsByNameIgnoreCaseAndPriceAndDescriptionIgnoreCaseAndIdNot(
+                request.getName(),
+                request.getPrice(),
+                request.getDescription(),
+                id
+        )) {
+            throw new ProductAlreadyExistsException(
+                    "Another product already exists with same name, price, and description."
+            );
+        }
+
+        product.setName(request.getName());
+        product.setDescription(request.getDescription());
+        product.setPrice(request.getPrice());
+        product.setQuantity(request.getQuantity());
+
         Product updatedProduct = productRepository.save(product);
+
         return mapToResponse(updatedProduct);
     }
 
