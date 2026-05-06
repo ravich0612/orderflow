@@ -1,40 +1,38 @@
-package com.ravi.orderflow.product;
+package com.ravi.orderflow.inventory;
 
+import com.ravi.orderflow.product.Product;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "products")
+@Table(name = "inventories")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Product {
+public class Inventory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
-    @Column(name = "name", nullable = false)
-    private String name;
-
-    @Column(name = "description", length = 1000)
-    private String description;
-
-    @Column(name = "price", nullable = false, precision = 10, scale = 2)
-    private BigDecimal price;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false, unique = true)
+    private Product product;
 
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
-    @Column(name = "active", nullable = false)
-    private Boolean active;
+    @Column(name = "reserved_quantity", nullable = false)
+    private Integer reservedQuantity;
+
+    @Column(name = "reorder_level", nullable = false)
+    private Integer reorderLevel;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -44,7 +42,8 @@ public class Product {
 
     @PrePersist
     protected void onCreate() {
-        this.active = true;
+        this.reservedQuantity = this.reservedQuantity == null ? 0 : this.reservedQuantity;
+        this.reorderLevel = this.reorderLevel == null ? 5 : this.reorderLevel;
         this.createdAt = LocalDateTime.now();
     }
 
